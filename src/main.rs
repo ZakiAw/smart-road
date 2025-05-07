@@ -13,7 +13,8 @@ fn random_lane() -> Lane {
     match n {
         0 => Lane::Straight,
         1 => Lane::Right,
-        _ => Lane::Left,
+        2 => Lane::Left,
+        _ => unreachable!()
     }
 }
 
@@ -148,6 +149,7 @@ fn main() {
                             (950.0, 1200.0),
                             vec![(950.0, 750.0), (1620.0, 750.0)], // turn RIGHT
                         ),
+                        _ => unreachable!()
                     };
                     cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
                     car_id_counter += 1;
@@ -161,6 +163,7 @@ fn main() {
                         Lane::Straight => ((710.0, 0.0), vec![(710.0, 1220.0)]),
                         Lane::Left => ((773.0, 0.0), vec![(773.0, 630.0), (1620.0, 630.0)]), // turn RIGHT
                         Lane::Right => ((650.0, 0.0), vec![(650.0, 450.0), (-20.0, 450.0)]), // turn LEFT
+                        _ => unreachable!()
                     };
                     cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
                     car_id_counter += 1;
@@ -175,6 +178,7 @@ fn main() {
                         Lane::Straight => ((1600.0, 510.0), vec![(-20.0, 510.0)]),
                         Lane::Left => ((1603.0, 570.0), vec![(773.0, 570.0), (773.0, 1220.0)]),  // turn UP
                         Lane::Right => ((1600.0, 450.0), vec![(950.0, 450.0), (950.0, -20.0)]), // turn DOWN
+                        _ => unreachable!()
                     };
                     cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
                     
@@ -190,6 +194,7 @@ fn main() {
                         Lane::Straight => ((0.0, 690.0), vec![(1620.0, 690.0)]),
                         Lane::Left => ((0.0, 630.0), vec![(830.0, 630.0), (830.0, -20.0)]), // turn DOWN
                         Lane::Right => ((0.0, 750.0), vec![(650.0, 750.0), (650.0, 1220.0)]), // turn UP
+                        _ => unreachable!()
                     };
                     cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
                     car_id_counter += 1;
@@ -199,7 +204,7 @@ fn main() {
                     keycode: Some(Keycode::P),
                     ..
                 } => {
-                    let lane = random_lane();
+                    let lane = Lane::Air;
                     let (position, waypoints) = ((1620.0, 1000.0), vec![(-20.0, 170.0)]); 
                     cars.push(Car::new(lane, position, waypoints, 6.5, car_id_counter));
                     car_id_counter += 1;

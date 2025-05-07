@@ -9,6 +9,7 @@ pub enum Lane {
     Straight,
     Right,
     Left,
+    Air,
 }
 
 #[derive(Debug)]
@@ -55,6 +56,7 @@ impl Car {
             Lane::Straight => Color::RGB(0, 255, 0),
             Lane::Right => Color::RGB(0, 0, 255),
             Lane::Left => Color::RGB(255, 0, 0),
+            Lane::Air => Color::RGB(255, 255, 255),
         };
 
         canvas.set_draw_color(car_color);
