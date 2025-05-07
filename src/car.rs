@@ -13,36 +13,42 @@ pub enum Lane {
 
 #[derive(Debug)]
 pub struct Car {
+    pub id: usize,
+    pub position: (f64, f64),
+    pub speed: f64,
+    pub waypoints: Vec<(f64, f64)>,
     pub lane: Lane,
-    pub speed: f32,
-    pub position: (f32, f32),
-    pub destination: (f32, f32),
-    pub start_time: Instant,
-    pub id: u32,
 }
 
+
 impl Car {
-    pub fn new(lane: Lane, position: (f32, f32), destination: (f32, f32), speed: f32, id: u32) -> Self {
+    pub fn new(lane: Lane, start: (f64, f64), waypoints: Vec<(f64, f64)>, speed: f64, id: usize) -> Self {
         Car {
-            lane,
-            position,
-            destination,
-            speed,
-            start_time: Instant::now(),
             id,
+            position: start,
+            speed,
+            waypoints,
+            lane,
         }
     }
+
 
     pub fn update_position(&mut self) {
-        let dx = self.destination.0 - self.position.0;
-        let dy = self.destination.1 - self.position.1;
-        let distance = (dx * dx + dy * dy).sqrt();
-
-        if distance > 0.1 {
-            self.position.0 += self.speed * dx / distance;
-            self.position.1 += self.speed * dy / distance;
+        if let Some(&(target_x, target_y)) = self.waypoints.first() {
+            let dx = target_x - self.position.0;
+            let dy = target_y - self.position.1;
+            let distance = (dx * dx + dy * dy).sqrt();
+    
+            if distance < self.speed {
+                self.position = (target_x, target_y);
+                self.waypoints.remove(0); // Go to next waypoint
+            } else {
+                self.position.0 += self.speed * dx / distance;
+                self.position.1 += self.speed * dy / distance;
+            }
         }
     }
+    
 
     pub fn render(&self, canvas: &mut Canvas<Window>) {
         let car_color = match self.lane {

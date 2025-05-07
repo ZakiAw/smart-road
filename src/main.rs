@@ -138,27 +138,31 @@ fn main() {
                     ..
                 } => {
                     let lane = random_lane();
-                    let (position, destination) = match lane {
-                                         //left  , up spawn ,, left   up end
-                        Lane::Straight => ((890.0, 1200.0), (890.0, -20.0)),
-                        Lane::Left => ((830.0, 1200.0), (830.0, 570.0)), // turn left
-                        Lane::Right => ((950.0, 1200.0), (950.0, 750.0)), // turn right
+                    let (position, waypoints) = match lane {
+                        Lane::Straight => ((890.0, 1200.0), vec![(890.0, -20.0)]),
+                        Lane::Left => (
+                            (830.0, 1200.0),
+                            vec![(830.0, 570.0), (-20.0, 570.0)], // turn UP
+                        ),
+                        Lane::Right => (
+                            (950.0, 1200.0),
+                            vec![(950.0, 750.0), (1620.0, 750.0)], // turn RIGHT
+                        ),
                     };
-                    cars.push(Car::new(lane, position, destination, 2.5, car_id_counter));
+                    cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
                     car_id_counter += 1;
                 }
-
                 Event::KeyDown {
                     keycode: Some(Keycode::Down),
                     ..
                 } => {
                     let lane = random_lane();
-                    let (position, destination) = match lane {
-                        Lane::Straight => ((710.0, 0.0), (710.0, 1220.0)),
-                        Lane::Left => ((773.0, 0.0), (773.0, 630.0)), // turn left
-                        Lane::Right => ((650.0, 0.0), (650.0, 450.0)), // turn right
-                    }; ////////
-                    cars.push(Car::new(lane, position, destination, 2.5, car_id_counter));
+                    let (position, waypoints) = match lane {
+                        Lane::Straight => ((710.0, 0.0), vec![(710.0, 1220.0)]),
+                        Lane::Left => ((773.0, 0.0), vec![(773.0, 630.0), (1620.0, 630.0)]), // turn RIGHT
+                        Lane::Right => ((650.0, 0.0), vec![(650.0, 450.0), (-20.0, 450.0)]), // turn LEFT
+                    };
+                    cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
                     car_id_counter += 1;
                 }
 
@@ -167,13 +171,13 @@ fn main() {
                     ..
                 } => {
                     let lane = random_lane();
-                    let (position, destination) = match lane {
-                        Lane::Straight => ((1600.0, 510.0), (-20.0, 510.0)), // straight to left
-                        Lane::Left => ((1603.0, 570.0), (773.0, 570.0)),   // left turn → goes UP
-                        Lane::Right => ((1600.0, 450.0), (950.0, 450.0)),  // right turn → goes DOWN
+                    let (position, waypoints) = match lane {
+                        Lane::Straight => ((1600.0, 510.0), vec![(-20.0, 510.0)]),
+                        Lane::Left => ((1603.0, 570.0), vec![(773.0, 570.0), (773.0, 1220.0)]),  // turn UP
+                        Lane::Right => ((1600.0, 450.0), vec![(950.0, 450.0), (950.0, -20.0)]), // turn DOWN
                     };
-
-                    cars.push(Car::new(lane, position, destination, 2.5, car_id_counter));
+                    cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
+                    
                     car_id_counter += 1;
                 }
 
@@ -182,14 +186,25 @@ fn main() {
                     ..
                 } => {
                     let lane = random_lane();
-                    let (position, destination) = match lane {
-                        Lane::Straight => ((0.0, 690.0), (1620.0, 690.0)), // straight to right
-                        Lane::Left => ((0.0, 630.0), (830.0, 630.0)),      // left turn → goes DOWN
-                        Lane::Right => ((0.0, 750.0), (650.0, 750.0)),     // right turn → goes UP
+                    let (position, waypoints) = match lane {
+                        Lane::Straight => ((0.0, 690.0), vec![(1620.0, 690.0)]),
+                        Lane::Left => ((0.0, 630.0), vec![(830.0, 630.0), (830.0, -20.0)]), // turn DOWN
+                        Lane::Right => ((0.0, 750.0), vec![(650.0, 750.0), (650.0, 1220.0)]), // turn UP
                     };
-                    cars.push(Car::new(lane, position, destination, 2.5, car_id_counter));
+                    cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
                     car_id_counter += 1;
                 }
+
+                Event::KeyDown {
+                    keycode: Some(Keycode::P),
+                    ..
+                } => {
+                    let lane = random_lane();
+                    let (position, waypoints) = ((1620.0, 1000.0), vec![(-20.0, 170.0)]); 
+                    cars.push(Car::new(lane, position, waypoints, 6.5, car_id_counter));
+                    car_id_counter += 1;
+                }
+
 
                 _ => {}
             }
