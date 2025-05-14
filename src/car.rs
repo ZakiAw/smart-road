@@ -36,7 +36,6 @@ pub struct Car<'a> {
     pub direction: Direction,
     pub texture: &'a Texture<'a>,
     pub angle: f64,
-    pub turned: bool,
     pub is_waiting: bool,
     pub size: Option<(u32, u32)>,
 }
@@ -67,7 +66,6 @@ impl<'a> Car<'a> {
                 (Direction::East, _) => 270.0,
                 (Direction::West, _) => 90.0,
             },
-            turned: false,
             is_waiting: false,
             size,
         }
@@ -117,7 +115,7 @@ impl<'a> Car<'a> {
                 for c in others {
                     if c.id != self.id
                         && c.in_bounds(&bounds)
-                        && c.id < self.id
+                        // && c.id < self.id  -> حاسس انه صار احسن بدونها جرب يا ذكي 
                         && self.conflicts_with(c)
                     {
                         self.speed = 0.0;
@@ -133,7 +131,6 @@ impl<'a> Car<'a> {
         }
         // update pos of car
         if !self.is_waiting {
-            // self.speed = 4.0;
             if let Some(target) = self.waypoints.first() {
                 let dx = target.x - self.position.0;
                 let dy = target.y - self.position.1;
@@ -143,7 +140,6 @@ impl<'a> Car<'a> {
                     self.position = (target.x, target.y);
                     if let Some(angle) = target.angle {
                         self.angle = angle;
-                        self.turned = true;
                     }
                     self.waypoints.remove(0);
                 } else {
