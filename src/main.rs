@@ -1,22 +1,16 @@
 use sdl2::event::Event;
+use sdl2::image::{InitFlag, LoadTexture};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
+use sdl2::render::Texture;
 use std::time::{Duration, Instant};
 
 mod car;
-use car::{Car, Lane};
+use car::{Car, Direction, Lane, Waypoint};
 use rand::Rng;
-
-fn random_lane() -> Lane {
-    let n = rand::thread_rng().gen_range(0..=2);
-    match n {
-        0 => Lane::Straight,
-        1 => Lane::Right,
-        2 => Lane::Left,
-        _ => unreachable!()
-    }
-}
+mod spawn_cars;
+use spawn_cars::spawn_car_from_key;
 
 fn main() {
     let sdl_context = sdl2::init().unwrap();
@@ -42,12 +36,38 @@ fn main() {
     let center_left: u32 = 600;
     let center_right: u32 = 960;
 
+    let _image_context = sdl2::image::init(InitFlag::PNG).unwrap();
+    let texture_creator = canvas.texture_creator();
+
+    let car_textures: Vec<Texture> = vec![
+        texture_creator.load_texture("assets/Car.png").unwrap(),
+        texture_creator
+            .load_texture("assets/Black_viper.png")
+            .unwrap(),
+        texture_creator.load_texture("assets/Police.png").unwrap(),
+    ];
+
+    let plane_textures: Vec<Texture> = vec![
+        texture_creator.load_texture("assets/Blemheim.png").unwrap(),
+        texture_creator.load_texture("assets/Hawker.png").unwrap(),
+    ];
+
+    let background_textures: Vec<Texture> = vec![
+        texture_creator.load_texture("assets/left1.png").unwrap(),
+        texture_creator.load_texture("assets/left2.png").unwrap(),
+        texture_creator.load_texture("assets/right1.png").unwrap(),
+        texture_creator.load_texture("assets/right2.png").unwrap(),
+    ];
+
+    let mut last_spawn_time = Instant::now();
+    let cooldown = Duration::from_secs_f64(0.25);
+
     'running: loop {
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
 
         // Draw roads
-        canvas.set_draw_color(Color::RGB(40, 40, 40));
+        canvas.set_draw_color(Color::RGB(23, 23, 23));
         canvas
             .fill_rect(Rect::new(
                 ((SCREEN_WIDTH - ROAD_WIDTH) / 2) as i32,
@@ -65,7 +85,7 @@ fn main() {
             ))
             .unwrap();
 
-        // Dashed lane dividers
+        // Dashed lane dividers - - - -
         canvas.set_draw_color(Color::RGB(255, 255, 255));
         let dash_step = 60;
         for y in (0..SCREEN_HEIGHT).step_by(dash_step as usize) {
@@ -95,123 +115,150 @@ fn main() {
             }
         }
 
-        // Solid center dividers
+        // Solid center dividers +
         canvas.set_draw_color(Color::RGB(255, 255, 255));
-        let vertical_divider_x = (SCREEN_WIDTH / 2) as i32;
-        canvas
-            .fill_rect(Rect::new(vertical_divider_x - 1, 0, 2, SCREEN_HEIGHT))
-            .unwrap();
-        let horizontal_divider_y = (SCREEN_HEIGHT / 2) as i32;
-        canvas
-            .fill_rect(Rect::new(0, horizontal_divider_y - 1, SCREEN_WIDTH, 2))
-            .unwrap();
-
-        // Clear center box
-        canvas.set_draw_color(Color::RGB(40, 40, 40));
         canvas
             .fill_rect(Rect::new(
-                (center_left + 10) as i32,
-                (center_top) as i32,
-                center_right - center_left + 20,
-                center_bottom - center_top + 25,
+                ((SCREEN_WIDTH / 2) as i32) - 1,
+                0,
+                2,
+                SCREEN_HEIGHT,
+            ))
+            .unwrap();
+        canvas
+            .fill_rect(Rect::new(
+                0,
+                ((SCREEN_HEIGHT / 2) as i32) - 1,
+                SCREEN_WIDTH,
+                2,
             ))
             .unwrap();
 
-        // Draw cars
+        // Clear center box
+        let center_x = SCREEN_WIDTH / 2;
+        let center_y = SCREEN_HEIGHT / 2;
+
+        let center_box_width = ROAD_WIDTH / 2 + 183;
+        let center_box_height = ROAD_WIDTH / 2 + 183;
+
+        let center_rect = Rect::new(
+            (center_x - center_box_width / 2) as i32,
+            (center_y - center_box_height / 2) as i32,
+            center_box_width,
+            center_box_height,
+        );
+
+        canvas.set_draw_color(Color::RGB(23, 23, 23));
+        canvas.fill_rect(center_rect).unwrap();
+
+        // mfar2 5tooot
+        canvas.set_draw_color(Color::YELLOW);
+        canvas.fill_rect(Rect::new(982, 420, 5, 179)).unwrap();
+
+        canvas.set_draw_color(Color::YELLOW);
+        canvas.fill_rect(Rect::new(613, 602, 5, 177)).unwrap();
+
+        canvas.set_draw_color(Color::YELLOW);
+        canvas.fill_rect(Rect::new(620, 414, 177, 5)).unwrap();
+
+        canvas.set_draw_color(Color::YELLOW);
+        canvas.fill_rect(Rect::new(802, 782, 177, 5)).unwrap();
+
+        // canvas.fill_rect(Rect::new(820, 690, 5, 5)).unwrap();
+        // canvas.fill_rect(Rect::new(890, 690, 5, 5)).unwrap();
+
+        // canvas.fill_rect(Rect::new(710, 690, 5, 5)).unwrap();
+        // canvas.fill_rect(Rect::new(770, 690, 5, 5)).unwrap();
+
+        // canvas.fill_rect(Rect::new(773, 570, 5, 5)).unwrap();
+        // canvas.fill_rect(Rect::new(830, 630, 5, 5)).unwrap();
+
+        // canvas.fill_rect(Rect::new(773, 570, 5, 5)).unwrap();
+        // canvas.fill_rect(Rect::new(830, 630, 5, 5)).unwrap();
+
+        let image_positions = vec![(0, 0), (0, 780), (980, 0), (980, 780)];
+        let (img_w, img_h) = (620, 420);
+        for (i, texture) in background_textures.iter().enumerate() {
+            let (x, y) = image_positions[i];
+            canvas
+                .copy(texture, None, Some(Rect::new(x, y, img_w, img_h)))
+                .unwrap();
+        }
+        let a = cars.clone();
         for car in cars.iter_mut() {
-            car.update_position();
+            car.update_position(&a);
+        }
+        for car in cars.iter() {
             car.render(&mut canvas);
         }
+        cars.retain(|car| !car.has_finished());
 
         canvas.present();
 
-        // Event handling
+        let direction_keys = [Keycode::Left, Keycode::Right, Keycode::Up, Keycode::Down];
         for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
+            if let Event::KeyDown {
+                keycode: Some(key), ..
+            } = event
+            {
+                match key {
+                    Keycode::Escape => {
+                        break 'running;
+                    }
+                    Keycode::R => {
+                        let random_key =
+                            direction_keys[rand::thread_rng().gen_range(0..direction_keys.len())];
+                        if last_spawn_time.elapsed() >= cooldown {
+                            if let Some(car) =
+                                spawn_car_from_key(random_key, &car_textures, car_id_counter)
+                            {
+                                cars.push(car);
+                                car_id_counter += 1;
+                                last_spawn_time = Instant::now();
+                            }
+                        }
+                    }
+                    Keycode::Up | Keycode::Down | Keycode::Left | Keycode::Right => {
+                        if last_spawn_time.elapsed() >= cooldown {
+                            if let Some(car) =
+                                spawn_car_from_key(key, &car_textures, car_id_counter)
+                            {
+                                cars.push(car);
+                                car_id_counter += 1;
+                                last_spawn_time = Instant::now();
+                            }
+                        }
+                    }
+                    Keycode::P => {
+                        let texture =
+                            &plane_textures[rand::thread_rng().gen_range(0..plane_textures.len())];
 
-                Event::KeyDown {
-                    keycode: Some(Keycode::Up),
-                    ..
-                } => {
-                    let lane = random_lane();
-                    let (position, waypoints) = match lane {
-                        Lane::Straight => ((890.0, 1200.0), vec![(890.0, -20.0)]),
-                        Lane::Left => (
-                            (830.0, 1200.0),
-                            vec![(830.0, 570.0), (-20.0, 570.0)], // turn UP
-                        ),
-                        Lane::Right => (
-                            (950.0, 1200.0),
-                            vec![(950.0, 750.0), (1620.0, 750.0)], // turn RIGHT
-                        ),
-                        _ => unreachable!()
-                    };
-                    cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
-                    car_id_counter += 1;
+                        let lane = Lane::Air;
+                        let direction = Direction::East;
+                        let position = (1620.0, 1000.0);
+
+                        let waypoints = vec![Waypoint {
+                            x: -20.0,
+                            y: 170.0,
+                            angle: None,
+                        }];
+
+                        cars.push(Car::new(
+                            lane,
+                            position,
+                            waypoints,
+                            4.0,
+                            car_id_counter,
+                            direction,
+                            texture,
+                            Some((120, 80)),
+                        ));
+                        car_id_counter += 1;
+                    }
+                    _ => {}
                 }
-                Event::KeyDown {
-                    keycode: Some(Keycode::Down),
-                    ..
-                } => {
-                    let lane = random_lane();
-                    let (position, waypoints) = match lane {
-                        Lane::Straight => ((710.0, 0.0), vec![(710.0, 1220.0)]),
-                        Lane::Left => ((773.0, 0.0), vec![(773.0, 630.0), (1620.0, 630.0)]), // turn RIGHT
-                        Lane::Right => ((650.0, 0.0), vec![(650.0, 450.0), (-20.0, 450.0)]), // turn LEFT
-                        _ => unreachable!()
-                    };
-                    cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
-                    car_id_counter += 1;
-                }
-
-                Event::KeyDown {
-                    keycode: Some(Keycode::Left),
-                    ..
-                } => {
-                    let lane = random_lane();
-                    let (position, waypoints) = match lane {
-                        Lane::Straight => ((1600.0, 510.0), vec![(-20.0, 510.0)]),
-                        Lane::Left => ((1603.0, 570.0), vec![(773.0, 570.0), (773.0, 1220.0)]),  // turn UP
-                        Lane::Right => ((1600.0, 450.0), vec![(950.0, 450.0), (950.0, -20.0)]), // turn DOWN
-                        _ => unreachable!()
-                    };
-                    cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
-                    
-                    car_id_counter += 1;
-                }
-
-                Event::KeyDown {
-                    keycode: Some(Keycode::Right),
-                    ..
-                } => {
-                    let lane = random_lane();
-                    let (position, waypoints) = match lane {
-                        Lane::Straight => ((0.0, 690.0), vec![(1620.0, 690.0)]),
-                        Lane::Left => ((0.0, 630.0), vec![(830.0, 630.0), (830.0, -20.0)]), // turn DOWN
-                        Lane::Right => ((0.0, 750.0), vec![(650.0, 750.0), (650.0, 1220.0)]), // turn UP
-                        _ => unreachable!()
-                    };
-                    cars.push(Car::new(lane, position, waypoints, 2.5, car_id_counter));
-                    car_id_counter += 1;
-                }
-
-                Event::KeyDown {
-                    keycode: Some(Keycode::P),
-                    ..
-                } => {
-                    let lane = Lane::Air;
-                    let (position, waypoints) = ((1620.0, 1000.0), vec![(-20.0, 170.0)]); 
-                    cars.push(Car::new(lane, position, waypoints, 6.5, car_id_counter));
-                    car_id_counter += 1;
-                }
-
-
-                _ => {}
+            } else if let Event::Quit { .. } = event {
+                break 'running;
             }
         }
 
